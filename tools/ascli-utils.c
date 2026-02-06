@@ -22,7 +22,9 @@
 
 #include <config.h>
 #include <stdio.h>
+#ifndef G_OS_WIN32
 #include <unistd.h>
+#endif
 #include <glib/gi18n-lib.h>
 
 #include "as-pool-private.h"

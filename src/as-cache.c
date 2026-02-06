@@ -34,7 +34,12 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#ifdef G_OS_WIN32
+#include <io.h>
+#define close _close
+#else
 #include <unistd.h>
+#endif
 #include <glib/gstdio.h>
 #include <glib/gi18n-lib.h>
 #include <xmlb.h>

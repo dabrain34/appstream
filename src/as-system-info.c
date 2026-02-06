@@ -44,7 +44,9 @@
 #else
 #include <sys/utsname.h>
 #endif
+#ifndef G_OS_WIN32
 #include <dirent.h>
+#endif
 #include <glib.h>
 
 #if defined(__linux__)
