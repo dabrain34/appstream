@@ -38,16 +38,20 @@
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #endif
 
+#ifdef __GNUC__
 #pragma GCC visibility push(hidden)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #pragma GCC diagnostic ignored "-Wmissing-prototypes"
+#endif
 #include "as-tag-xml-private.h"
 #include "as-tag-yaml-private.h"
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
 #pragma GCC visibility pop
+#endif
 
 /**
  * as_xml_tag_from_string:

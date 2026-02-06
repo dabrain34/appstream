@@ -26,9 +26,15 @@
 #include "as-macros.h"
 
 G_BEGIN_DECLS
+#ifdef __GNUC__
 #pragma GCC visibility push(hidden)
+#endif
 
 /* clang-format off */
+#ifndef __GNUC__
+#define AS_BEGIN_PRIVATE_DECLS G_BEGIN_DECLS
+#define AS_END_PRIVATE_DECLS   G_END_DECLS
+#else
 #define AS_BEGIN_PRIVATE_DECLS \
 	G_BEGIN_DECLS          \
 	_Pragma ("GCC visibility push(hidden)")
@@ -36,8 +42,17 @@ G_BEGIN_DECLS
 #define AS_END_PRIVATE_DECLS \
 	_Pragma ("GCC visibility pop") \
 	G_END_DECLS
+#endif
 
-#define AS_INTERNAL_VISIBLE __attribute__((visibility("default")))
+#ifndef __GNUC__
+  #ifdef AS_COMPILATION
+    #define AS_INTERNAL_VISIBLE __declspec(dllexport)
+  #else
+    #define AS_INTERNAL_VISIBLE __declspec(dllimport)
+  #endif
+#else
+  #define AS_INTERNAL_VISIBLE __attribute__((visibility("default")))
+#endif
 /* clang-format on */
 
 /**
@@ -107,11 +122,25 @@ G_BEGIN_DECLS
 	}                                                                             \
 	G_STMT_END
 #define AS_PTR_ARRAY_CLEAR_FREE_FUNC(array) AS_PTR_ARRAY_SET_FREE_FUNC (array, NULL)
+
+#ifndef __GNUC__
+/* MSVC does not support GCC statement expressions ({...}).
+ * Use an inline function instead. */
+static inline gpointer
+_as_ptr_array_steal_full (GPtrArray **arrptr)
+{
+	AS_PTR_ARRAY_CLEAR_FREE_FUNC (*(arrptr));
+	return g_steal_pointer ((arrptr));
+}
+#define AS_PTR_ARRAY_STEAL_FULL(arrptr) _as_ptr_array_steal_full (arrptr)
+#else
 #define AS_PTR_ARRAY_STEAL_FULL(arrptr)                   \
 	({                                                \
 		AS_PTR_ARRAY_CLEAR_FREE_FUNC (*(arrptr)); \
 		g_steal_pointer ((arrptr));               \
 	})
+#endif
+
 #define AS_PTR_ARRAY_RETURN_CLEAR_FREE_FUNC(array)         \
 	G_STMT_START                                       \
 	{                                                  \
@@ -121,7 +150,9 @@ G_BEGIN_DECLS
 	}                                                  \
 	G_STMT_END
 
+#ifdef __GNUC__
 #pragma GCC visibility pop
+#endif
 G_END_DECLS
 
 #endif /* __AS_MACROS_PRIVATE_H */

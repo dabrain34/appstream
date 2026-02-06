@@ -93,7 +93,9 @@ void as_yaml_list_to_str_array (struct fy_node *node, GPtrArray *array);
 void as_yaml_print_unknown (const gchar *root, const gchar *key, ssize_t key_len);
 
 /* these functions have internal visibility, so appstream-compose can write YAML data */
+#ifdef __GNUC__
 #pragma GCC visibility push(default)
+#endif
 void		       as_yaml_mapping_start (struct fy_emitter *emitter);
 void		       as_yaml_mapping_end (struct fy_emitter *emitter);
 
@@ -115,7 +117,9 @@ void as_yaml_emit_entry_timestamp (struct fy_emitter *emitter, const gchar *key,
 void as_yaml_emit_long_entry (struct fy_emitter *emitter, const gchar *key, const gchar *value);
 void as_yaml_emit_sequence (struct fy_emitter *emitter, const gchar *key, GPtrArray *list);
 
+#ifdef __GNUC__
 #pragma GCC visibility pop
+#endif
 void as_yaml_emit_sequence_from_str_array (struct fy_emitter *emitter,
 					   const gchar	     *key,
 					   GPtrArray	     *array);

@@ -62,7 +62,12 @@ typedef enum {
  * The token match kind, which we want to be exactly 16 bits for storage
  * reasons.
  **/
+#ifndef __GNUC__
+#pragma pack(push, 1)
+typedef enum /*< skip >*/ {
+#else
 typedef enum /*< skip >*/ __attribute__((__packed__)) {
+#endif
 	AS_SEARCH_TOKEN_MATCH_NONE	  = 0,
 	AS_SEARCH_TOKEN_MATCH_MEDIATYPE	  = 1 << 0,
 	AS_SEARCH_TOKEN_MATCH_PKGNAME	  = 1 << 1,
@@ -75,6 +80,9 @@ typedef enum /*< skip >*/ __attribute__((__packed__)) {
 	/*< private >*/
 	AS_SEARCH_TOKEN_MATCH_LAST	  = 0xffff
 } AsSearchTokenMatch;
+#ifndef __GNUC__
+#pragma pack(pop)
+#endif
 
 typedef guint16 AsTokenType; /* big enough for both bitshifts */
 
