@@ -1,5 +1,5 @@
 [wrap-git]
 directory = libxmlb
-url = https://github.com/hughsie/libxmlb.git
-revision = main
+url = https://github.com/dabrain34/libxmlb.git
+revision = dab_msvc_support
 depth = 1

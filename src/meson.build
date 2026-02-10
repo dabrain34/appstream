@@ -184,6 +184,7 @@ aslib_gperf_yaml = custom_target(
 )
 aslib_src = aslib_src + [aslib_gperf_xml, aslib_gperf_yaml]
 
+
 aslib_deps = [
     glib_dep,
     gobject_dep,
@@ -218,7 +219,7 @@ appstream_dep = declare_dependency(
     sources: [
         aslib_pub_headers,
         aslib_gir_headers,
-        aslib_pub_enums
+        aslib_pub_enums[1]  # Only the header, not the .c source
     ],
     dependencies: [glib_dep,
                    gobject_dep],
@@ -239,14 +240,16 @@ pkgc.generate(
 
 # Meson adds (in our case) bogus Requires.private lines which break
 # builds using libappstream. Fix this issue by post-processing the file.
-sed_prog = find_program('sed')
-pc_fixup = run_command(sed_prog,
-                       '-i.old',
-                       '/^Requires.private\|^Libs.private/ d',
-                       meson.global_build_root() / 'meson-private' / 'appstream.pc',
-                       check: false)
-if pc_fixup.returncode() != 0
-    error('Unable to fix up the .pc file:\n' + pc_fixup.stderr())
+if host_machine.system() != 'windows'
+    sed_prog = find_program('sed')
+    pc_fixup = run_command(sed_prog,
+                           '-i.old',
+                           '/^Requires.private\|^Libs.private/ d',
+                           meson.global_build_root() / 'meson-private' / 'appstream.pc',
+                           check: false)
+    if pc_fixup.returncode() != 0
+        error('Unable to fix up the .pc file:\n' + pc_fixup.stderr())
+    endif
 endif
 
 install_headers(aslib_pub_headers, aslib_gir_headers, subdir: 'appstream')

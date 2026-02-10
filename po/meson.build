@@ -14,8 +14,8 @@ i18n_result = i18n.gettext(as_gettext_domain,
 )
 
 run_target ('make-linguas',
-    command: ['sh',
-              join_paths(source_root, 'contrib/meson/update-linguas.sh')]
+    command: [find_program('python3', 'python'),
+              join_paths(source_root, 'contrib/meson/update-linguas.py')]
 )
 
 # maintainer shortcut for updating l10n data

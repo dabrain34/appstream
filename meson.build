@@ -1,6 +1,6 @@
 project('AppStream', 'c',
   meson_version: '>=0.62',
-  default_options: ['c_std=gnu17', 'cpp_std=c++20'],
+  default_options: ['c_std=c17', 'cpp_std=c++20'],
 
   license: 'LGPL-2.1-or-later',
   version: '1.1.2',
@@ -55,7 +55,12 @@ root_inc_dir = include_directories ('.')
 #
 
 if cc.get_id() == 'msvc'
-  error('MSVC is not supported as it does not support modern C11 features and __attribute__((cleanup))')
+  # Force-include MSVC compatibility header that provides g_autoptr/g_autofree/g_auto
+  # as plain variable declarations (automatic cleanup is not available on MSVC).
+  add_project_arguments(
+    '/FI' + meson.current_source_dir() / 'src' / 'as-msvc-compat.h',
+    language: 'c'
+  )
 endif
 
 sanitizer_libs = []
@@ -124,23 +129,26 @@ add_project_arguments(
   ]),
   language: 'c'
 )
-add_project_arguments(
-  '-Wno-unused-parameter',
-  '-Werror=empty-body',
-  '-Werror=pointer-arith',
-  '-Werror=init-self',
-  '-Werror=missing-declarations',
-  '-Werror=return-type',
-  '-Werror=misleading-indentation',
-  '-Werror=format-security',
+if cc.get_id() != 'msvc'
+  add_project_arguments(
+    '-Wno-unused-parameter',
+    '-Werror=empty-body',
+    '-Werror=pointer-arith',
+    '-Werror=init-self',
+    '-Werror=missing-declarations',
+    '-Werror=return-type',
+    '-Werror=misleading-indentation',
+    '-Werror=format-security',
 
-  language: 'cpp'
-)
+    language: 'cpp'
+  )
+endif
 
 # Vendor extensions in system headers
-if host_machine.system() != 'netbsd'
+if host_machine.system() != 'netbsd' and host_machine.system() != 'windows'
     # on NetBSD, defining POSIX_C_SOURCE *removes* non-POSIX symbols from namespace,
     # while on all other systems it adds them. Hence we only define this when not on NetBSD.
+    # On Windows, this define conflicts with MSVC/UCRT headers.
     add_project_arguments('-D_POSIX_C_SOURCE=201710L', language: 'c')
 endif
 
@@ -149,7 +157,7 @@ if host_machine.system() == 'darwin'
     add_project_arguments('-D_DARWIN_C_SOURCE', language: 'c')
 endif
 
-if cc.get_id() == 'clang'
+if cc.get_id() == 'clang' or cc.get_id() == 'clang-cl'
     # Clang doesn't understand autofree helpers on GMutexLocker and thinks
     # these variables are irrelevant, so this warning when used with Clang
     # gives many false-positives
@@ -167,12 +175,28 @@ add_project_arguments('-DAS_COMPILATION', language: 'c')
 glib_dep = dependency('glib-2.0', version: '>= 2.62')
 gobject_dep = dependency('gobject-2.0', version: '>= 2.62')
 gio_dep = dependency('gio-2.0', version: '>= 2.62')
-curl_dep = dependency('libcurl', version: '>= 7.62')
-xml2_dep = dependency('libxml-2.0')
-fyaml_dep = dependency('libfyaml', version: '>= 0.8')
+curl_dep = dependency('libcurl', version: '>= 7.62',
+                        fallback: ['curl', 'curl_dep'])
+xml2_dep = dependency('libxml-2.0', version: '>= 2.15',
+                       fallback: ['libxml2', 'xml2_dep'],
+                       default_options: ['iconv=disabled'])
+fyaml_dep = dependency('libfyaml', version: '>= 0.8', required: false)
+if not fyaml_dep.found()
+    cmake = import('cmake')
+    fyaml_opts = cmake.subproject_options()
+    fyaml_opts.add_cmake_defines({
+        'BUILD_TESTING': false,
+        'ENABLE_NETWORK': false,
+        'BUILD_SHARED_LIBS': false,
+    })
+    fyaml_proj = cmake.subproject('libfyaml', options: fyaml_opts)
+    fyaml_dep = fyaml_proj.dependency('fyaml_static')
+endif
+conf.set('HAVE_YAML', true)
 xmlb_dep = dependency('xmlb', version: '>= 0.3.14',
                       fallback: ['libxmlb', 'libxmlb_dep'],
-                      default_options: ['gtkdoc=false', 'introspection=false'])
+                      default_options: ['gtkdoc=false', 'introspection=false',
+                                        'tests=false', 'cli=false'])
 if get_option('zstd-support')
     zstd_dep = dependency('libzstd', required: get_option('zstd-support'))
 else
@@ -231,12 +255,14 @@ subdir('src/')
 if get_option('compose')
     subdir('compose/')
 endif
-subdir('tools/')
 subdir('po/')
-subdir('data/')
-subdir('contrib/')
-subdir('docs/')
-subdir('tests/')
+if host_machine.system() != 'windows'
+    subdir('tools/')
+    subdir('data/')
+    subdir('contrib/')
+    subdir('docs/')
+    subdir('tests/')
+endif
 if get_option('qt')
     subdir('qt/')
 endif
